@@ -101,11 +101,22 @@ function createPiece(type) {
 }
 
 function draw() {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
+    drawCheckerboard();
     drawMatrix(context, arena, {x: 0, y: 0});
     drawMatrix(context, player.matrix, player.pos);
+}
+
+function drawCheckerboard() {
+    for (let y = 0; y < 20; y++) {
+        for (let x = 0; x < 12; x++) {
+            if ((x + y) % 2 === 0) {
+                context.fillStyle = '#111';
+            } else {
+                context.fillStyle = '#222';
+            }
+            context.fillRect(x, y, 1, 1);
+        }
+    }
 }
 
 function drawMatrix(ctx, matrix, offset) {
