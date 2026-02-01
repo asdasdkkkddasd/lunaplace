@@ -4,6 +4,9 @@ const next1Canvas = document.getElementById('next-1');
 const next1Context = next1Canvas.getContext('2d');
 const next2Canvas = document.getElementById('next-2');
 const next2Context = next2Canvas.getContext('2d');
+const startButton = document.getElementById('start-button');
+const menu = document.querySelector('.menu');
+const container = document.querySelector('.container');
 
 context.scale(20, 20);
 next1Context.scale(20, 20);
@@ -279,6 +282,12 @@ document.addEventListener('keydown', event => {
     }
 });
 
-playerReset();
-updateScore();
-update();
+function startGame() {
+    menu.style.display = 'none';
+    container.style.display = 'flex';
+    playerReset();
+    updateScore();
+    update();
+}
+
+startButton.addEventListener('click', startGame);
