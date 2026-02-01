@@ -3,43 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luna Place</title>
+    <title>Tetris</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
 </head>
 <body>
-
-    <header>
-        <h1>Luna Place</h1>
-        <nav>
-            <a href="#about">About</a>
-            <a href="#game">Game</a>
-        </nav>
-    </header>
-
-    <main>
-        <section id="about">
-            <h2>About Me</h2>
-            <p>Welcome to my personal space. I'm a passionate developer who loves creating interactive and fun web experiences. Below, you can play a classic game of Snake I built with JavaScript!</p>
-        </section>
-
-        <section id="game">
-            <h2>Retro Snake</h2>
-            <div class="game-container">
-                <div class="game-header">
-                    <span>Score: <span id="score">0</span></span>
-                    <button id="start-button">Start Game</button>
-                </div>
-                <canvas id="game-canvas" width="400" height="400"></canvas>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2026 Luna Place. Built with fun.</p>
-    </footer>
-
+    <h1>Tetris</h1>
+    <div id="score">Score: 0</div>
+    <canvas id="tetris" width="240" height="400"></canvas>
     <script src="main.js"></script>
-
 </body>
 </html>

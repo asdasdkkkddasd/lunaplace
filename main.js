@@ -1,151 +1,246 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('game-canvas');
-    const ctx = canvas.getContext('2d');
-    const scoreElement = document.getElementById('score');
-    const startButton = document.getElementById('start-button');
+const canvas = document.getElementById('tetris');
+const context = canvas.getContext('2d');
 
-    const gridSize = 20;
-    let snake = [{ x: 10, y: 10 }];
-    let food = {};
-    let score = 0;
-    let direction = 'right';
-    let changingDirection = false;
-    let gameRunning = false;
-    let gameLoop;
+context.scale(20, 20);
 
-    const main = () => {
-        if (!gameRunning) return;
-
-        gameLoop = setTimeout(() => {
-            changingDirection = false;
-            clearCanvas();
-            drawFood();
-            moveSnake();
-            drawSnake();
-            main();
-        }, 100);
-    };
-
-    const startGame = () => {
-        if (gameRunning) return;
-        gameRunning = true;
-        snake = [{ x: 10, y: 10 }];
-        direction = 'right';
-        score = 0;
-        scoreElement.textContent = score;
-        generateFood();
-        startButton.textContent = 'Restart Game';
-        main();
-    };
-
-    const clearCanvas = () => {
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
-
-    const drawSnake = () => {
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
-        snake.forEach((part, index) => {
-            ctx.fillStyle = index === 0 ? '#FFFFFF' : accentColor;
-            ctx.strokeStyle = '#000000';
-            ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
-            ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
-        });
-    };
-
-    const moveSnake = () => {
-        const head = { x: snake[0].x, y: snake[0].y };
-
-        switch (direction) {
-            case 'up': head.y -= 1; break;
-            case 'down': head.y += 1; break;
-            case 'left': head.x -= 1; break;
-            case 'right': head.x += 1; break;
-        }
-
-        snake.unshift(head);
-
-        if (checkCollision()) {
-            endGame();
-            return;
-        }
-
-        if (head.x === food.x && head.y === food.y) {
-            score += 10;
-            scoreElement.textContent = score;
-            generateFood();
-        } else {
-            snake.pop();
-        }
-    };
-
-    const generateFood = () => {
-        food.x = Math.floor(Math.random() * (canvas.width / gridSize));
-        food.y = Math.floor(Math.random() * (canvas.height / gridSize));
-        // Ensure food doesn't spawn on the snake
-        snake.forEach(part => {
-            if (part.x === food.x && part.y === food.y) {
-                generateFood();
+function arenaSweep() {
+    let rowCount = 1;
+    outer: for (let y = arena.length - 1; y > 0; --y) {
+        for (let x = 0; x < arena[y].length; ++x) {
+            if (arena[y][x] === 0) {
+                continue outer;
             }
-        });
-    };
-
-    const drawFood = () => {
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
-        ctx.fillStyle = accentColor;
-        ctx.strokeStyle = '#000000';
-        ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-        ctx.strokeRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
-    };
-
-    const changeDirection = (event) => {
-        if (changingDirection) return;
-        changingDirection = true;
-
-        const keyPressed = event.key;
-        const goingUp = direction === 'up';
-        const goingDown = direction === 'down';
-        const goingLeft = direction === 'left';
-        const goingRight = direction === 'right';
-
-        if (keyPressed === 'ArrowLeft' && !goingRight) direction = 'left';
-        if (keyPressed === 'ArrowUp' && !goingDown) direction = 'up';
-        if (keyPressed === 'ArrowRight' && !goingLeft) direction = 'right';
-        if (keyPressed === 'ArrowDown' && !goingUp) direction = 'down';
-    };
-    
-    const checkCollision = () => {
-        const head = snake[0];
-        // Wall collision
-        if (head.x < 0 || head.x * gridSize >= canvas.width || head.y < 0 || head.y * gridSize >= canvas.height) {
-            return true;
         }
-        // Self collision
-        for (let i = 4; i < snake.length; i++) {
-            if (head.x === snake[i].x && head.y === snake[i].y) {
+
+        const row = arena.splice(y, 1)[0].fill(0);
+        arena.unshift(row);
+        ++y;
+
+        player.score += rowCount * 10;
+        rowCount *= 2;
+    }
+}
+
+function collide(arena, player) {
+    const [m, o] = [player.matrix, player.pos];
+    for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+            if (m[y][x] !== 0 &&
+               (arena[y + o.y] &&
+                arena[y + o.y][x + o.x]) !== 0) {
                 return true;
             }
         }
-        return false;
-    };
+    }
+    return false;
+}
 
-    const endGame = () => {
-        gameRunning = false;
-        clearTimeout(gameLoop);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = 'white';
-        ctx.font = "40px 'Orbitron', sans-serif";
-        ctx.textAlign = 'center';
-        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
-        
-        ctx.font = "20px 'Orbitron', sans-serif";
-        ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-        
-        startButton.textContent = 'Start Game';
-    };
+function createMatrix(w, h) {
+    const matrix = [];
+    while (h--) {
+        matrix.push(new Array(w).fill(0));
+    }
+    return matrix;
+}
 
-    startButton.addEventListener('click', startGame);
-    document.addEventListener('keydown', changeDirection);
+function createPiece(type) {
+    if (type === 'T') {
+        return [
+            [0, 0, 0],
+            [1, 1, 1],
+            [0, 1, 0],
+        ];
+    } else if (type === 'O') {
+        return [
+            [2, 2],
+            [2, 2],
+        ];
+    } else if (type === 'L') {
+        return [
+            [0, 3, 0],
+            [0, 3, 0],
+            [0, 3, 3],
+        ];
+    } else if (type === 'J') {
+        return [
+            [0, 4, 0],
+            [0, 4, 0],
+            [4, 4, 0],
+        ];
+    } else if (type === 'I') {
+        return [
+            [0, 5, 0, 0],
+            [0, 5, 0, 0],
+            [0, 5, 0, 0],
+            [0, 5, 0, 0],
+        ];
+    } else if (type === 'S') {
+        return [
+            [0, 6, 6],
+            [6, 6, 0],
+            [0, 0, 0],
+        ];
+    } else if (type === 'Z') {
+        return [
+            [7, 7, 0],
+            [0, 7, 7],
+            [0, 0, 0],
+        ];
+    }
+}
+
+function draw() {
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawMatrix(arena, {x: 0, y: 0});
+    drawMatrix(player.matrix, player.pos);
+}
+
+function drawMatrix(matrix, offset) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                context.fillStyle = colors[value];
+                context.fillRect(x + offset.x,
+                                 y + offset.y,
+                                 1, 1);
+            }
+        });
+    });
+}
+
+function merge(arena, player) {
+    player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                arena[y + player.pos.y][x + player.pos.x] = value;
+            }
+        });
+    });
+}
+
+function playerDrop() {
+    player.pos.y++;
+    if (collide(arena, player)) {
+        player.pos.y--;
+        merge(arena, player);
+        playerReset();
+        arenaSweep();
+        updateScore();
+    }
+    dropCounter = 0;
+}
+
+function playerMove(dir) {
+    player.pos.x += dir;
+    if (collide(arena, player)) {
+        player.pos.x -= dir;
+    }
+}
+
+function playerReset() {
+    const pieces = 'ILJOTSZ';
+    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    player.pos.y = 0;
+    player.pos.x = (arena[0].length / 2 | 0) -
+                   (player.matrix[0].length / 2 | 0);
+    if (collide(arena, player)) {
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        updateScore();
+    }
+}
+
+function playerRotate(dir) {
+    const pos = player.pos.x;
+    let offset = 1;
+    rotate(player.matrix, dir);
+    while (collide(arena, player)) {
+        player.pos.x += offset;
+        offset = -(offset + (offset > 0 ? 1 : -1));
+        if (offset > player.matrix[0].length) {
+            rotate(player.matrix, -dir);
+            player.pos.x = pos;
+            return;
+        }
+    }
+}
+
+function rotate(matrix, dir) {
+    for (let y = 0; y < matrix.length; ++y) {
+        for (let x = 0; x < y; ++x) {
+            [
+                matrix[x][y],
+                matrix[y][x],
+            ] = [
+                matrix[y][x],
+                matrix[x][y],
+            ];
+        }
+    }
+
+    if (dir > 0) {
+        matrix.forEach(row => row.reverse());
+    } else {
+        matrix.reverse();
+    }
+}
+
+let dropCounter = 0;
+let dropInterval = 1000;
+
+let lastTime = 0;
+function update(time = 0) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+
+    dropCounter += deltaTime;
+    if (dropCounter > dropInterval) {
+        playerDrop();
+    }
+
+    draw();
+    requestAnimationFrame(update);
+}
+
+function updateScore() {
+    document.getElementById('score').innerText = 'Score: ' + player.score;
+}
+
+const colors = [
+    null,
+    '#FF0D72',
+    '#0DC2FF',
+    '#0DFF72',
+    '#F538FF',
+    '#FF8E0D',
+    '#FFE138',
+    '#3877FF',
+];
+
+const arena = createMatrix(12, 20);
+
+const player = {
+    pos: {x: 0, y: 0},
+    matrix: null,
+    score: 0,
+};
+
+document.addEventListener('keydown', event => {
+    if (event.keyCode === 37) {
+        playerMove(-1);
+    } else if (event.keyCode === 39) {
+        playerMove(1);
+    } else if (event.keyCode === 40) {
+        playerDrop();
+    } else if (event.keyCode === 81) {
+        playerRotate(-1);
+    } else if (event.keyCode === 87) {
+        playerRotate(1);
+    }
 });
+
+playerReset();
+updateScore();
+update();
