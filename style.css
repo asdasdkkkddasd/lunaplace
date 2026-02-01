@@ -1,1 +1,133 @@
-/* Add styles here */
+:root {
+    --primary-color: #0D0D0D;
+    --secondary-color: #1A1A1A;
+    --accent-color: #00FFDD;
+    --glow-color: rgba(0, 255, 221, 0.7);
+    --text-color: #E0E0E0;
+    --font-primary: 'Orbitron', sans-serif;
+    --font-secondary: 'Roboto', sans-serif;
+}
+
+body {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-family: var(--font-secondary);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+header {
+    background-color: var(--secondary-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent-color);
+}
+
+header h1 {
+    font-family: var(--font-primary);
+    color: var(--accent-color);
+    margin: 0;
+    text-shadow: 0 0 5px var(--glow-color);
+}
+
+nav a {
+    color: var(--text-color);
+    text-decoration: none;
+    margin-left: 1rem;
+    font-weight: bold;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+nav a:hover {
+    color: var(--accent-color);
+    text-shadow: 0 0 5px var(--glow-color);
+}
+
+main {
+    padding: 2rem;
+}
+
+section {
+    background-color: var(--secondary-color);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+}
+
+h2 {
+    font-family: var(--font-primary);
+    color: var(--accent-color);
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 400px;
+    margin-bottom: 1rem;
+    font-family: var(--font-primary);
+    font-size: 1.2rem;
+}
+
+#start-button {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+    border: none;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-primary);
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: box-shadow 0.3s, background-color 0.3s;
+}
+
+#start-button:hover {
+    background-color: #fff;
+    box-shadow: 0 0 10px var(--glow-color), 0 0 20px var(--glow-color);
+}
+
+#game-canvas {
+    background-color: var(--primary-color);
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 15px var(--glow-color);
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    margin-top: 2rem;
+    background-color: var(--secondary-color);
+    border-top: 1px solid #2a2a2a;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+    }
+
+    nav {
+        margin-top: 1rem;
+    }
+    
+    .game-header {
+        width: 100%;
+    }
+
+    #game-canvas {
+        width: 100%;
+        height: auto;
+    }
+}
