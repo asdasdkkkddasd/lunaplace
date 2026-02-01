@@ -6,11 +6,32 @@ body {
     text-align: center;
 }
 
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
 canvas {
     border: solid .2em #fff;
+}
+
+#tetris {
     height: 90vh;
 }
 
+.sidebar {
+    margin-left: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 #score {
+    margin-bottom: 1rem;
+}
+
+#next-1, #next-2 {
+    border: solid .2em #fff;
     margin-bottom: 1rem;
 }

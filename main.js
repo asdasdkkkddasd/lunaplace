@@ -1,7 +1,15 @@
 const canvas = document.getElementById('tetris');
 const context = canvas.getContext('2d');
+const next1Canvas = document.getElementById('next-1');
+const next1Context = next1Canvas.getContext('2d');
+const next2Canvas = document.getElementById('next-2');
+const next2Context = next2Canvas.getContext('2d');
 
 context.scale(20, 20);
+next1Context.scale(20, 20);
+next2Context.scale(20, 20);
+
+let pieceQueue = [];
 
 function arenaSweep() {
     let rowCount = 1;
@@ -93,21 +101,31 @@ function draw() {
     context.fillStyle = '#000';
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    drawMatrix(arena, {x: 0, y: 0});
-    drawMatrix(player.matrix, player.pos);
+    drawMatrix(context, arena, {x: 0, y: 0});
+    drawMatrix(context, player.matrix, player.pos);
 }
 
-function drawMatrix(matrix, offset) {
+function drawMatrix(ctx, matrix, offset) {
     matrix.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value !== 0) {
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x,
+                ctx.fillStyle = colors[value];
+                ctx.fillRect(x + offset.x,
                                  y + offset.y,
                                  1, 1);
             }
         });
     });
+}
+
+function drawNextPieces() {
+    next1Context.fillStyle = '#000';
+    next1Context.fillRect(0, 0, next1Canvas.width, next1Canvas.height);
+    drawMatrix(next1Context, createPiece(pieceQueue[0]), {x: 1, y: 1});
+
+    next2Context.fillStyle = '#000';
+    next2Context.fillRect(0, 0, next2Canvas.width, next2Canvas.height);
+    drawMatrix(next2Context, createPiece(pieceQueue[1]), {x: 1, y: 1});
 }
 
 function merge(arena, player) {
@@ -132,6 +150,18 @@ function playerDrop() {
     dropCounter = 0;
 }
 
+function playerHardDrop() {
+    while (!collide(arena, player)) {
+        player.pos.y++;
+    }
+    player.pos.y--;
+    merge(arena, player);
+    playerReset();
+    arenaSweep();
+    updateScore();
+    dropCounter = 0;
+}
+
 function playerMove(dir) {
     player.pos.x += dir;
     if (collide(arena, player)) {
@@ -141,7 +171,14 @@ function playerMove(dir) {
 
 function playerReset() {
     const pieces = 'ILJOTSZ';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    if (pieceQueue.length === 0) {
+        pieceQueue = pieces.split('').sort(() => Math.random() - 0.5);
+    }
+    player.matrix = createPiece(pieceQueue.shift());
+    if (pieceQueue.length <= 2) {
+        pieceQueue.push(...pieces.split('').sort(() => Math.random() - 0.5));
+    }
+
     player.pos.y = 0;
     player.pos.x = (arena[0].length / 2 | 0) -
                    (player.matrix[0].length / 2 | 0);
@@ -150,6 +187,7 @@ function playerReset() {
         player.score = 0;
         updateScore();
     }
+    drawNextPieces();
 }
 
 function playerRotate(dir) {
@@ -238,6 +276,8 @@ document.addEventListener('keydown', event => {
         playerRotate(-1);
     } else if (event.keyCode === 87) {
         playerRotate(1);
+    } else if (event.keyCode === 32) {
+        playerHardDrop();
     }
 });
 
