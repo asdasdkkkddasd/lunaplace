@@ -38,6 +38,7 @@
 
         // --- 2. 게임 로직 ---
         function resetGame() {
+            console.log("resetGame() called: Resetting game state.");
             // Clear the board
             board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
             
@@ -46,30 +47,43 @@
             lines = 0;
             level = 1;
             speed = 1000;
-            document.getElementById('score').innerText = score;
-            document.getElementById('lines').innerText = lines;
-            document.getElementById('level').innerText = level;
+            if (document.getElementById('score')) document.getElementById('score').innerText = score;
+            if (document.getElementById('lines')) document.getElementById('lines').innerText = lines;
+            if (document.getElementById('level')) document.getElementById('level').innerText = level;
 
             // Clear any existing game interval
             if (gameInterval) {
                 clearInterval(gameInterval);
+                console.log("Game interval cleared.");
             }
             // Remove keydown listener to prevent duplicates
             document.removeEventListener('keydown', handleInput);
+            console.log("Keydown listener removed.");
+
             // Remove game over restart button listener to prevent duplicates
-            gameOverRestartButton.removeEventListener('click', init);
-            console.log("Hiding game over restart button.");
-            gameOverRestartButton.style.display = 'none'; // Explicitly hide the game over restart button
+            if (gameOverRestartButton) {
+                gameOverRestartButton.removeEventListener('click', init);
+                console.log("Hiding game over restart button. Current display:", gameOverRestartButton.style.display);
+                gameOverRestartButton.style.display = 'none'; // Explicitly hide the game over restart button
+            } else {
+                console.warn("gameOverRestartButton not found during resetGame.");
+            }
             // Hide the gameplay restart button when resetting (e.g., to show menu or game over)
-            restartGameplayButton.style.display = 'none';
+            if (restartGameplayButton) {
+                console.log("Hiding gameplay restart button. Current display:", restartGameplayButton.style.display);
+                restartGameplayButton.style.display = 'none';
+            } else {
+                console.warn("restartGameplayButton not found during resetGame.");
+            }
 
             // Reset piece queue and hold
             nextPieceType = Math.floor(Math.random() * 7) + 1;
             holdPieceType = null;
             canHold = true;
             // Clear mini-grids visually
-            document.getElementById('next-grid').innerHTML = '';
-            document.getElementById('hold-grid').innerHTML = '';
+            if (document.getElementById('next-grid')) document.getElementById('next-grid').innerHTML = '';
+            if (document.getElementById('hold-grid')) document.getElementById('hold-grid').innerHTML = '';
+            console.log("Game state reset complete.");
         }
 
         function init() {
@@ -77,15 +91,30 @@
             resetGame(); // Reset all game state
 
             // Hide menu, show game
-            menu.style.display = 'none';
-            gameContainer.style.display = 'flex';
-            gameContainer.classList.remove('game-over'); // Remove grayscale filter
-            restartGameplayButton.style.display = 'block'; // Show the gameplay restart button
+            if (menu) menu.style.display = 'none';
+            if (gameContainer) {
+                gameContainer.style.display = 'flex';
+                gameContainer.classList.remove('game-over'); // Remove grayscale filter
+                console.log("gameContainer display set to flex, game-over class removed.");
+            } else {
+                console.error("gameContainer not found during init.");
+            }
+            
+            // Ensure both restart buttons are in their correct initial state
+            if (gameOverRestartButton) {
+                gameOverRestartButton.style.display = 'none';
+                console.log("Game over restart button explicitly hidden in init.");
+            }
+            if (restartGameplayButton) {
+                restartGameplayButton.style.display = 'block'; // Show the gameplay restart button
+                console.log("Gameplay restart button explicitly shown in init.");
+            }
 
             spawnPiece();
             draw();
             gameInterval = setInterval(gameLoop, speed);
             document.addEventListener('keydown', handleInput); // Add listener for this game session
+            console.log("Game loop started and keydown listener added.");
         }
 
         function spawnPiece() {
@@ -98,25 +127,39 @@
             
             // 패배 조건 확인
             if (collide(currentX, currentY, currentPiece)) {
-                console.log("Game Over condition met in spawnPiece().");
+                console.log("Game Over condition met in spawnPiece(). Initiating game over sequence.");
                 clearInterval(gameInterval); // Stop game loop
-                gameContainer.classList.add('game-over'); // Apply overlay and effects
+                if (gameContainer) {
+                    gameContainer.classList.add('game-over'); // Apply overlay and effects
+                    console.log("gameContainer had 'game-over' class added.");
+                } else {
+                    console.error("gameContainer not found during game over sequence.");
+                }
                 document.removeEventListener('keydown', handleInput); // Disable controls
+                console.log("Keydown listener disabled for game over.");
                 
                 // Display final score and restart button
-                finalScoreDisplay.innerText = `Final Score: ${score}`;
-                console.log("Attaching game over restart button listener.");
-                gameOverRestartButton.addEventListener('click', init); // Attach listener to the game over button
-                console.log("Showing game over restart button.");
-                gameOverRestartButton.style.display = 'block'; // Explicitly show the game over restart button
-                restartGameplayButton.style.display = 'none'; // Hide the gameplay restart button
+                if (finalScoreDisplay) finalScoreDisplay.innerText = `Final Score: ${score}`;
                 
+                if (gameOverRestartButton) {
+                    console.log("Attaching game over restart button listener.");
+                    gameOverRestartButton.addEventListener('click', init); // Attach listener to the game over button
+                    console.log("Showing game over restart button. Current display:", gameOverRestartButton.style.display);
+                    gameOverRestartButton.style.display = 'block'; // Explicitly show the game over restart button
+                } else {
+                    console.error("gameOverRestartButton not found during game over sequence.");
+                }
+
+                if (restartGameplayButton) {
+                    console.log("Hiding gameplay restart button. Current display:", restartGameplayButton.style.display);
+                    restartGameplayButton.style.display = 'none'; // Hide the gameplay restart button
+                } else {
+                    console.warn("restartGameplayButton not found during game over sequence.");
+                }
+                
+                console.log("Game over sequence complete.");
                 return;
             }
-            
-            canHold = true;
-            drawNext();
-        }
 
         function collide(x, y, piece) {
             for (let r = 0; r < piece.length; r++) {
