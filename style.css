@@ -12,7 +12,7 @@
 
         .game-container {
             display: flex;
-            gap: 30px;
+            gap: 40px;
             align-items: center;
         }
 
@@ -34,8 +34,8 @@
         
         /* 3. 사이드 패널 (Hold, Next, Score) */
         .side-panel {
-            width: 120px;
-            height: 140px;
+            width: 150px;
+            height: 170px;
             margin-bottom: 20px;
             position: relative;
         }
@@ -43,18 +43,18 @@
         .side-panel h3 {
             color: #fff;
             margin: 0 0 10px 0;
-            font-size: 16px;
+            font-size: 18px;
             text-shadow: 1px 1px 2px black;
         }
 
         .score-box {
-            height: 200px;
+            height: 240px;
             justify-content: space-around;
         }
 
         .score-text {
             color: #fff;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: bold;
             background: #000;
             width: 80%;
@@ -66,30 +66,30 @@
 
         .label {
             color: #ccc;
-            font-size: 14px;
+            font-size: 16px;
             margin-bottom: -5px;
         }
 
         /* 4. 메인 게임 보드 */
         .board-wrapper {
-            width: 300px; /* 30px * 10칸 */
-            height: 600px; /* 30px * 20칸 */
+            width: 350px; /* 35px * 10칸 */
+            height: 700px; /* 35px * 20칸 */
             background-color: #000;
             position: relative;
             display: grid;
-            grid-template-rows: repeat(20, 30px);
-            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(20, 35px);
+            grid-template-columns: repeat(10, 35px);
             /* 격자 무늬 */
             background-image: 
                 linear-gradient(#333 1px, transparent 1px),
                 linear-gradient(90deg, #333 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-size: 35px 35px;
         }
 
         /* 5. 블록 디자인 (CSS로 광택 효과 구현) */
         .block {
-            width: 30px;
-            height: 30px;
+            width: 35px;
+            height: 35px;
             box-sizing: border-box;
             border: 1px solid rgba(0,0,0,0.2);
             /* 젤리 같은 입체감 효과 */
@@ -119,13 +119,13 @@
         /* 미니 그리드 (Next, Hold 용) */
         .mini-grid {
             display: grid;
-            grid-template-rows: repeat(4, 25px);
-            grid-template-columns: repeat(4, 25px);
+            grid-template-rows: repeat(4, 30px);
+            grid-template-columns: repeat(4, 30px);
             gap: 1px;
         }
         .mini-grid .block {
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
         }
         
         .game-over {
