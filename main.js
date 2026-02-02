@@ -40,6 +40,8 @@
             // Hide menu, show game
             menu.style.display = 'none';
             gameContainer.style.display = 'flex';
+            gameContainer.classList.remove('game-over');
+
 
             // Reset game state
             for(let r = 0; r < ROWS; r++) {
@@ -75,9 +77,8 @@
             if (collide(currentX, currentY, currentPiece)) {
                 alert("Game Over! Score: " + score);
                 clearInterval(gameInterval);
-                // Show menu again
+                gameContainer.classList.add('game-over');
                 menu.style.display = 'flex';
-                gameContainer.style.display = 'none';
                 return; // Stop game loop implicitly
             }
             
