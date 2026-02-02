@@ -23,6 +23,7 @@
   let equity = balance;     // includes uPnL
   let position = null;      // {side:"LONG"/"SHORT", entry, qty, lev, margin, tpPx, slPx, liqPx, feePaid}
   let lastLog = [];
+  let entryMarkers = [];
 
   // Leaderboard
   const baseLB = [
@@ -123,7 +124,12 @@
     price = Math.max(1000, price + drift + vol);
 
     points.push(price);
-    if(points.length > MAX_POINTS) points.shift();
+    if(points.length > MAX_POINTS) {
+      points.shift();
+      // markers move left with the chart
+      entryMarkers.forEach(m => m.index--);
+      entryMarkers = entryMarkers.filter(m => m.index >= 0);
+    }
 
     // after price change, check TP/SL/liq
     if(position) {
@@ -167,6 +173,27 @@
     ctx.arc(w-2, yLast, 5, 0, Math.PI*2);
     ctx.fillStyle = "rgba(247,160,0,1)";
     ctx.fill();
+
+    // entry markers
+    entryMarkers.forEach(marker => {
+      const x = marker.index * xStep;
+      const y = h - ((marker.price - min) / (max - min)) * h;
+
+      ctx.beginPath();
+      if (marker.side === 'LONG') {
+        ctx.moveTo(x, y + 5);
+        ctx.lineTo(x - 5, y + 12);
+        ctx.lineTo(x + 5, y + 12);
+        ctx.fillStyle = 'rgba(14, 203, 129, 0.8)';
+      } else {
+        ctx.moveTo(x, y - 5);
+        ctx.lineTo(x - 5, y - 12);
+        ctx.lineTo(x + 5, y - 12);
+        ctx.fillStyle = 'rgba(246, 70, 93, 0.8)';
+      }
+      ctx.closePath();
+      ctx.fill();
+    });
 
     // TP/SL/Liq lines if position
     if(position){
@@ -256,6 +283,8 @@
       feePaid: feeEntry,
       feePct
     };
+
+    entryMarkers.push({ price: entry, side, index: points.length - 1 });
 
     setStatus(side === "LONG" ? "IN LONG" : "IN SHORT");
     log(`${side} 진입 · x${lev} · 비중 ${riskPct}% · 진입가 ${fmt(entry,2)} · (진입 수수료 -${fmt(feeEntry,0)} KRW)`);
@@ -353,6 +382,7 @@
     // reset price path a bit
     price = 68000 + (Math.random()-0.5)*800;
     points = Array.from({length: MAX_POINTS}, () => price);
+    entryMarkers = [];
     log(`=== 새 라운드(리셋) ===`);
     startRound();
   }
