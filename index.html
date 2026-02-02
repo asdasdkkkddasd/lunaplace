@@ -1,139 +1,49 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Coin Trading Game (MVP)</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>Glossy Tetris</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <span class="badge">SIM</span>
-  <div class="title">코인 트레이딩 게임 MVP</div>
-  <div class="sub">실제 거래/입출금 없음 · 가상머니 시뮬레이션</div>
-</header>
-
-<div class="wrap">
-  <!-- LEFT: CHART + STATUS -->
-  <section class="card">
-    <h3>
-      <span>BTC-USDT (가짜 실시간)</span>
-      <span class="muted" id="roundInfo">Round 1 · 03:00</span>
-    </h3>
-    <canvas id="chart" width="1100" height="360"></canvas>
-
-    <div class="row">
-      <div class="grid3">
-        <div class="kpi">
-          <div class="label">현재가</div>
-          <div class="value" id="priceNow">-</div>
-          <div class="hint">틱: <span id="tickMs">250</span>ms</div>
-        </div>
-        <div class="kpi">
-          <div class="label">내 잔고</div>
-          <div class="value" id="balance">-</div>
-          <div class="hint">초기자금: 1,000,000 KRW</div>
-        </div>
-        <div class="kpi">
-          <div class="label">미실현 PnL</div>
-          <div class="value" id="upnl">-</div>
-          <div class="hint">포지션이 없으면 0</div>
-        </div>
-      </div>
-
-      <div class="pos" id="posBox">
-        <span class="pill">포지션: FLAT</span>
-        <span class="pill">진입가: -</span>
-        <span class="pill">수량: -</span>
-        <span class="pill">레버리지: -</span>
-        <span class="pill">청산가(근사): -</span>
-        <span class="pill">TP/SL: -</span>
-      </div>
+    <div class="menu" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
+        <button id="start-button" style="padding: 20px 40px; font-size: 2em; cursor: pointer;">Start Game</button>
     </div>
 
-    <div class="log" id="log"></div>
+    <div class="game-container" style="display: none;">
+        <div class="column">
+            <div class="panel side-panel">
+                <h3>HOLD</h3>
+                <div id="hold-grid" class="mini-grid"></div>
+            </div>
+            <div class="panel side-panel score-box">
+                <div class="label">SCORE</div>
+                <div id="score" class="score-text">0</div>
+                <div class="label">LEVEL</div>
+                <div id="level" class="score-text">1</div>
+                <div class="label">LINES</div>
+                <div id="lines" class="score-text">0</div>
+            </div>
+        </div>
 
-    <div class="foot">
-      ⚠️ 이 페이지는 **게임/시뮬레이터**입니다. 실제 코인 매매, 입금/출금, 보상, 현금화 기능이 없습니다.<br/>
-      (애드센스/정책용으로는 “투자 권유/도박”이 아니라 “시뮬레이션 게임”임을 명확히 표시하는 게 중요)
+        <div class="panel">
+            <div id="game-board" class="board-wrapper"></div>
+        </div>
+
+        <div class="column">
+            <div class="panel side-panel" style="height: 150px;">
+                <h3>NEXT</h3>
+                <div id="next-grid" class="mini-grid"></div>
+            </div>
+            <div style="margin-top: 150px; text-align: center; color:#555;">
+                <p>← ↓ → : 이동</p>
+                <p>↑ : 회전</p>
+                <p>Space : 드롭</p>
+                <p>C : 홀드</p>
+            </div>
+        </div>
     </div>
-  </section>
 
-  <!-- RIGHT: TRADE PANEL + LEADERBOARD -->
-  <aside class="card">
-    <h3>
-      <span>거래 패널</span>
-      <span class="muted" id="status">READY</span>
-    </h3>
-    <div class="row controls">
-      <div class="field">
-        <label>레버리지</label>
-        <select id="lev">
-          <option value="2">x2</option>
-          <option value="5" selected>x5</option>
-          <option value="10">x10</option>
-          <option value="20">x20</option>
-          <option value="50">x50</option>
-        </select>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label>진입 비중(잔고 %)</label>
-          <input id="risk" type="number" min="1" max="100" value="20" />
-        </div>
-        <div class="field">
-          <label>수수료(왕복, %)</label>
-          <input id="fee" type="number" min="0" step="0.01" value="0.08" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="field">
-          <label>TP(%)</label>
-          <input id="tp" type="number" step="0.1" value="2.0" />
-        </div>
-        <div class="field">
-          <label>SL(%)</label>
-          <input id="sl" type="number" step="0.1" value="1.2" />
-        </div>
-      </div>
-
-      <div class="btns">
-        <button class="buy" id="btnLong">LONG</button>
-        <button class="sell" id="btnShort">SHORT</button>
-      </div>
-
-      <div class="grid2">
-        <button class="flat" id="btnClose">포지션 종료</button>
-        <button class="warn" id="btnReset">새 라운드</button>
-      </div>
-
-      <div class="card" style="box-shadow:none">
-        <h3 style="border-bottom:none">
-          <span>랭킹 (샘플)</span>
-          <span class="muted">Top 10</span>
-        </h3>
-        <div style="padding:0 0 6px 0">
-          <table id="lb">
-            <thead>
-              <tr>
-                <th>닉</th>
-                <th class="right">수익률</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="foot">
-        팁: “홀짝” 느낌으로 만들고 싶으면 라운드를 30초~60초로 줄이고, TP/SL을 작게 잡아 빠른 승부로 가면 됨.
-      </div>
-    </div>
-  </aside>
-</div>
-
-<script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
