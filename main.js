@@ -30,11 +30,17 @@
 
         // DOM elements
         const startButton = document.getElementById('start-button');
+        if (!startButton) console.error("startButton not found!");
         const menu = document.querySelector('.menu');
+        if (!menu) console.error("menu not found!");
         const gameContainer = document.querySelector('.game-container');
+        if (!gameContainer) console.error("gameContainer not found!");
         const finalScoreDisplay = document.getElementById('final-score');
+        if (!finalScoreDisplay) console.error("finalScoreDisplay not found!");
         const gameOverRestartButton = document.getElementById('game-over-restart-button'); // Renamed
+        if (!gameOverRestartButton) console.error("gameOverRestartButton not found!");
         const restartGameplayButton = document.getElementById('restart-gameplay-button'); // New button
+        if (!restartGameplayButton) console.error("restartGameplayButton not found!");
 
         // --- 2. 게임 로직 ---
         function resetGame() {

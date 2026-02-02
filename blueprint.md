@@ -19,6 +19,7 @@ This is a Tetris-like game running in the browser. The user wants to improve the
     *   Clicking this button immediately restarts the game.
     *   This button is hidden when the game is over.
     *   **Visibility Fix (Robustness):** Explicitly set `restartGameplayButton.style.display = 'block'` on game start and `restartGameplayButton.style.display = 'none'` on game over/reset in `main.js` to ensure reliable visibility. Added verbose console logs for debugging these display changes, including checks for DOM element existence.
+3.  **Enhanced Startup Debugging:** Added `console.error` checks immediately after the declaration of critical DOM elements (e.g., `startButton`, `gameContainer`, etc.) in `main.js`. This will provide immediate feedback in the browser console if any essential elements are missing during initial page load, helping to diagnose why the game might not be starting at all.
 
 ## New Requirements (Multiplayer Concept)
 
