@@ -165,7 +165,11 @@
                 
                 console.log("Game over sequence complete.");
                 return;
-            }
+            } // This closes the 'if' block.
+            
+            canHold = true;
+            drawNext();
+        } // This is the missing closing brace for spawnPiece.
 
         function collide(x, y, piece) {
             for (let r = 0; r < piece.length; r++) {
