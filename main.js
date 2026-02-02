@@ -88,12 +88,9 @@
             
             // 패배 조건 확인
             if (collide(currentX, currentY, currentPiece)) {
-                alert("Game Over! Score: " + score + "\nLines: " + lines + "\nLevel: " + level);
                 clearInterval(gameInterval); // Stop game loop
-                gameContainer.classList.add('game-over'); // Apply grayscale filter
-                menu.style.display = 'block'; // Show start menu
-                gameContainer.style.display = 'none'; // Hide game board
-                document.removeEventListener('keydown', handleInput); // Remove listener
+                gameContainer.classList.add('game-over'); // Apply overlay and effects
+                document.removeEventListener('keydown', handleInput); // Disable controls
                 return;
             }
             
@@ -352,11 +349,4 @@
 
         startButton.addEventListener('click', init);
         
-        // This is a new class for grayscale filter
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .game-over {
-                filter: grayscale(100%);
-            }
-        `;
-        document.head.appendChild(style);
+        
