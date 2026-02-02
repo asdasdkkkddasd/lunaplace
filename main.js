@@ -1,345 +1,371 @@
-        // --- 1. 기본 설정 및 데이터 ---
-        const COLS = 10;
-        const ROWS = 20;
-        const board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-        
-        const SHAPES = [
-            [], // 0: empty
-            [[1, 1, 1, 1]], // I (Cyan)
-            [[2, 0, 0], [2, 2, 2]], // J (Blue)
-            [[0, 0, 3], [3, 3, 3]], // L (Orange)
-            [[4, 4], [4, 4]], // O (Yellow)
-            [[0, 5, 5], [5, 5, 0]], // S (Green)
-            [[0, 6, 0], [6, 6, 6]], // T (Purple)
-            [[7, 7, 0], [0, 7, 7]]  // Z (Red)
-        ];
-        
-        const COLORS = ['transparent', 'cyan', 'blue', 'orange', 'yellow', 'green', 'purple', 'red'];
+(() => {
+  // ======= UTIL =======
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n, d=0) => Number(n).toLocaleString('ko-KR', {maximumFractionDigits:d, minimumFractionDigits:d});
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-        let currentPiece = null;
-        let currentX = 0;
-        let currentY = 0;
-        let nextPieceType = null;
-        let holdPieceType = null;
-        let canHold = true;
-        let score = 0;
-        let lines = 0;
-        let level = 1;
-        let gameInterval;
-        let speed = 1000;
+  // ======= GAME STATE =======
+  const TICK_MS = 250; // chart update interval
+  const MAX_POINTS = 160;
 
-        // DOM elements
-        const startButton = document.getElementById('start-button');
-        const menu = document.querySelector('.menu');
-        const gameContainer = document.querySelector('.game-container');
+  let round = 1;
+  let roundSecTotal = 180; // 3 minutes
+  let roundSecLeft = roundSecTotal;
+  let timerId = null;
+  let tickId = null;
 
+  // Price simulation (random walk)
+  let price = 68000; // pseudo "BTC price"
+  let points = Array.from({length: MAX_POINTS}, () => price);
 
-        // --- 2. 게임 로직 ---
+  // Account
+  let balance = 1_000_000; // KRW virtual
+  let equity = balance;     // includes uPnL
+  let position = null;      // {side:"LONG"/"SHORT", entry, qty, lev, margin, tpPx, slPx, liqPx, feePaid}
+  let lastLog = [];
 
-        function init() {
-            // Hide menu, show game
-            menu.style.display = 'none';
-            gameContainer.style.display = 'flex';
-            gameContainer.classList.remove('game-over');
+  // Leaderboard
+  const baseLB = [
+    {name:"ALPHA", r: 18.4},
+    {name:"BETA", r: 12.1},
+    {name:"GAMMA", r: 9.7},
+    {name:"DELTA", r: 6.9},
+    {name:"EPS", r: 4.2},
+    {name:"ZETA", r: 2.8},
+    {name:"ETA", r: 1.3},
+    {name:"THETA", r: -0.4},
+    {name:"IOTA", r: -1.2},
+    {name:"KAPPA", r: -2.6},
+  ];
+  const me = {name:"YOU", r: 0};
 
+  // ======= UI =======
+  const ctx = $("chart").getContext("2d");
+  $("tickMs").textContent = TICK_MS;
 
-            // Reset game state
-            for(let r = 0; r < ROWS; r++) {
-                for(let c = 0; c < COLS; c++) {
-                    board[r][c] = 0;
-                }
-            }
-            score = 0;
-            lines = 0;
-            level = 1;
-            speed = 1000;
-            document.getElementById('score').innerText = score;
-            document.getElementById('lines').innerText = lines;
-            document.getElementById('level').innerText = level;
+  function setStatus(txt){ $("status").textContent = txt; }
+  function setRoundInfo(){
+    const mm = String(Math.floor(roundSecLeft / 60)).padStart(2,"0");
+    const ss = String(roundSecLeft % 60).padStart(2,"0");
+    $("roundInfo").textContent = `Round ${round} · ${mm}:${ss}`;
+  }
 
+  function log(msg){
+    const ts = new Date().toLocaleTimeString("ko-KR", {hour12:false});
+    lastLog.unshift(`[${ts}] ${msg}`);
+    lastLog = lastLog.slice(0, 60);
+    $("log").innerHTML = lastLog.map(x => `<div>${x}</div>`).join("");
+  }
 
-            nextPieceType = Math.floor(Math.random() * 7) + 1;
-            spawnPiece();
-            draw();
-            gameInterval = setInterval(gameLoop, speed);
-            document.addEventListener('keydown', handleInput);
-        }
+  function updateKPI(){
+    $("priceNow").textContent = fmt(price, 2);
+    $("balance").textContent = `${fmt(balance)} KRW`;
 
-        function spawnPiece() {
-            const type = nextPieceType;
-            nextPieceType = Math.floor(Math.random() * 7) + 1;
-            
-            currentPiece = SHAPES[type];
-            currentX = Math.floor((COLS - currentPiece[0].length) / 2);
-            currentY = 0;
-            
-            // 패배 조건 확인
-            if (collide(currentX, currentY, currentPiece)) {
-                alert("Game Over! Score: " + score);
-                clearInterval(gameInterval);
-                gameContainer.classList.add('game-over');
-                menu.style.display = 'flex';
-                return; // Stop game loop implicitly
-            }
-            
-            canHold = true;
-            drawNext();
-        }
+    const upnl = calcUPnL();
+    $("upnl").innerHTML = upnl >= 0
+      ? `<span class="greenTxt">+${fmt(upnl,0)} KRW</span>`
+      : `<span class="redTxt">${fmt(upnl,0)} KRW</span>`;
 
-        function collide(x, y, piece) {
-            for (let r = 0; r < piece.length; r++) {
-                for (let c = 0; c < piece[r].length; c++) {
-                    if (piece[r][c] !== 0) {
-                        let newX = x + c;
-                        let newY = y + r;
-                        if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY][newX] !== 0)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
+    renderPosBox();
+  }
 
-        function merge() {
-            let colorIndex = 0;
-            for(let r=0; r<currentPiece.length; r++) {
-                for(let c=0; c<currentPiece[r].length; c++){
-                    if(currentPiece[r][c] !== 0) {
-                        colorIndex = currentPiece[r][c];
-                        break;
-                    }
-                }
-                if(colorIndex !== 0) break;
-            }
+  function renderPosBox(){
+    const box = $("posBox");
+    if(!position){
+      box.innerHTML = `
+        <span class="pill">포지션: FLAT</span>
+        <span class="pill">진입가: -</span>
+        <span class="pill">수량: -</span>
+        <span class="pill">레버리지: -</span>
+        <span class="pill">청산가(근사): -</span>
+        <span class="pill">TP/SL: -</span>
+      `;
+      return;
+    }
+    const sidePill = position.side === "LONG"
+      ? `<span class="pill green">포지션: LONG</span>`
+      : `<span class="pill red">포지션: SHORT</span>`;
+    box.innerHTML = `
+      ${sidePill}
+      <span class="pill">진입가: ${fmt(position.entry,2)}</span>
+      <span class="pill">수량: ${fmt(position.qty,6)}</span>
+      <span class="pill">레버리지: x${position.lev}</span>
+      <span class="pill">청산가(근사): ${fmt(position.liqPx,2)}</span>
+      <span class="pill">TP/SL: ${fmt(position.tpPx,2)} / ${fmt(position.slPx,2)}</span>
+    `;
+  }
 
-            for (let r = 0; r < currentPiece.length; r++) {
-                for (let c = 0; c < currentPiece[r].length; c++) {
-                    if (currentPiece[r][c] !== 0) {
-                        board[currentY + r][currentX + c] = colorIndex;
-                    }
-                }
-            }
-        }
+  function renderLB(){
+    // include ME based on overall return since round start
+    const start = 1_000_000;
+    const total = balance + calcUPnL();
+    me.r = ((total - start) / start) * 100;
 
-        function rotate(piece) {
-            const newPiece = piece[0].map((_, i) => piece.map(row => row[i]).reverse());
-            if (!collide(currentX, currentY, newPiece)) {
-                currentPiece = newPiece;
-            } else {
-                // Wall kick (간단 버전: 좌우로 살짝 밀어보기)
-                if (!collide(currentX - 1, currentY, newPiece)) {
-                    currentX -= 1;
-                    currentPiece = newPiece;
-                } else if (!collide(currentX + 1, currentY, newPiece)) {
-                    currentX += 1;
-                    currentPiece = newPiece;
-                }
-            }
-        }
+    const list = [...baseLB, {...me}].sort((a,b)=> b.r - a.r).slice(0,10);
+    const tb = $("lb").querySelector("tbody");
+    tb.innerHTML = list.map(x=>{
+      const cls = x.r >= 0 ? "greenTxt" : "redTxt";
+      const meMark = x.name === "YOU" ? " (나)" : "";
+      return `
+        <tr>
+          <td>${x.name}${meMark}</td>
+          <td class="right ${cls}">${x.r>=0?"+":""}${fmt(x.r,2)}%</td>
+        </tr>
+      `;
+    }).join("");
+  }
 
-        function clearLines() {
-            let linesCleared = 0;
-            for (let r = ROWS - 1; r >= 0; r--) {
-                if (board[r].every(cell => cell !== 0)) {
-                    board.splice(r, 1);
-                    board.unshift(Array(COLS).fill(0));
-                    linesCleared++;
-                    r++; 
-                }
-            }
-            if (linesCleared > 0) {
-                lines += linesCleared;
-                score += linesCleared * 100 * linesCleared;
-                level = Math.floor(lines / 10) + 1;
-                speed = Math.max(100, 1000 - (level - 1) * 100);
-                clearInterval(gameInterval);
-                gameInterval = setInterval(gameLoop, speed);
-                
-                document.getElementById('score').innerText = score;
-                document.getElementById('lines').innerText = lines;
-                document.getElementById('level').innerText = level;
-            }
-        }
+  // ======= PRICE SIM =======
+  function stepPrice(){
+    // random walk with slight drift + volatility
+    const drift = (Math.random() - 0.5) * 6;     // small drift
+    const vol = (Math.random() - 0.5) * 120;     // volatility
+    price = Math.max(1000, price + drift + vol);
 
-        function gameLoop() {
-            if (!collide(currentX, currentY + 1, currentPiece)) {
-                currentY++;
-            } else {
-                merge();
-                clearLines();
-                spawnPiece();
-            }
-            draw();
-        }
+    points.push(price);
+    if(points.length > MAX_POINTS) points.shift();
 
-        // 고스트 블록 위치 계산
-        function getGhostY() {
-            let ghostY = currentY;
-            while (!collide(currentX, ghostY + 1, currentPiece)) {
-                ghostY++;
-            }
-            return ghostY;
-        }
+    // after price change, check TP/SL/liq
+    if(position) {
+      const hit = checkTriggers();
+      if(hit) return; // position closed
+    }
+    drawChart();
+    updateKPI();
+  }
 
-        function hold() {
-            if (!canHold) return;
-            
-            // 현재 블록의 색상 인덱스 찾기
-            let currentColorIdx = 0;
-             for(let r=0; r<currentPiece.length; r++) {
-                if(currentPiece[r].some(v=>v!==0)) {
-                    currentColorIdx = currentPiece[r].find(v=>v!==0);
-                    break;
-                }
-            }
+  // ======= CHART DRAW =======
+  function drawChart(){
+    const c = $("chart");
+    const w = c.width, h = c.height;
+    ctx.clearRect(0,0,w,h);
 
-            if (holdPieceType === null) {
-                holdPieceType = currentColorIdx; // 현재 조각 타입 저장
-                spawnPiece(); // 새 조각
-            } else {
-                let temp = holdPieceType;
-                holdPieceType = currentColorIdx;
-                currentPiece = SHAPES[temp]; // 저장된 조각 불러오기
-                currentX = Math.floor((COLS - currentPiece[0].length) / 2);
-                currentY = 0;
-            }
-            canHold = false;
-            drawHold();
-        }
+    // compute min/max
+    let min = Infinity, max = -Infinity;
+    for(const p of points){ if(p<min) min=p; if(p>max) max=p; }
+    const pad = (max - min) * 0.12 || 50;
+    min -= pad; max += pad;
 
+    const xStep = w / (points.length - 1);
 
-        // --- 3. 렌더링 (그리기) ---
+    // line
+    ctx.beginPath();
+    points.forEach((p,i)=>{
+      const x = i * xStep;
+      const y = h - ((p - min) / (max - min)) * h;
+      if(i===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    });
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(247,160,0,.9)";
+    ctx.stroke();
 
-        function draw() {
-            const boardDiv = document.getElementById('game-board');
-            boardDiv.innerHTML = ''; // 초기화
+    // current price marker
+    const last = points[points.length-1];
+    const yLast = h - ((last - min) / (max - min)) * h;
+    ctx.beginPath();
+    ctx.arc(w-2, yLast, 5, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(247,160,0,1)";
+    ctx.fill();
 
-            // 1. 이미 고정된 블록 그리기
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    if (board[r][c] !== 0) {
-                        const block = document.createElement('div');
-                        block.classList.add('block');
-                        block.classList.add(COLORS[board[r][c]]);
-                        block.style.gridRowStart = r + 1;
-                        block.style.gridColumnStart = c + 1;
-                        boardDiv.appendChild(block);
-                    }
-                }
-            }
+    // TP/SL/Liq lines if position
+    if(position){
+      drawHLine(position.tpPx, min, max, "rgba(14,203,129,.8)");
+      drawHLine(position.slPx, min, max, "rgba(246,70,93,.8)");
+      drawHLine(position.liqPx, min, max, "rgba(255,255,255,.35)", [6,6]);
+    }
+  }
 
-            // 2. 고스트 블록 그리기 (그림자)
-            const ghostY = getGhostY();
-            for (let r = 0; r < currentPiece.length; r++) {
-                for (let c = 0; c < currentPiece[r].length; c++) {
-                    if (currentPiece[r][c] !== 0) {
-                        const block = document.createElement('div');
-                        block.classList.add('block', 'ghost');
-                        // 색상은 현재 블록 색을 따라가되 투명하게 할 수도 있지만, 여기선 흰 테두리로 통일
-                        block.style.gridRowStart = ghostY + r + 1;
-                        block.style.gridColumnStart = currentX + c + 1;
-                        boardDiv.appendChild(block);
-                    }
-                }
-            }
+  function drawHLine(px, min, max, color, dash=null){
+    const c = $("chart");
+    const w = c.width, h = c.height;
+    const y = h - ((px - min) / (max - min)) * h;
+    ctx.save();
+    ctx.beginPath();
+    if(dash) ctx.setLineDash(dash);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+    ctx.restore();
+  }
 
-            // 3. 현재 떨어지는 블록 그리기
-            let colorIndex = 0;
-             for(let r=0; r<currentPiece.length; r++) {
-                if(currentPiece[r].some(v=>v!==0)) {
-                    colorIndex = currentPiece[r].find(v=>v!==0);
-                    break;
-                }
-            }
+  // ======= TRADING =======
+  function calcUPnL(){
+    if(!position) return 0;
+    const dir = position.side === "LONG" ? 1 : -1;
+    const pnl = (price - position.entry) * dir * position.qty;
+    return pnl; // KRW-like units (sim)
+  }
 
-            for (let r = 0; r < currentPiece.length; r++) {
-                for (let c = 0; c < currentPiece[r].length; c++) {
-                    if (currentPiece[r][c] !== 0) {
-                        const block = document.createElement('div');
-                        block.classList.add('block');
-                        block.classList.add(COLORS[colorIndex]);
-                        block.style.gridRowStart = currentY + r + 1;
-                        block.style.gridColumnStart = currentX + c + 1;
-                        boardDiv.appendChild(block);
-                    }
-                }
-            }
-        }
+  function openPosition(side){
+    if(position){
+      log("이미 포지션이 있음. 먼저 종료하세요.");
+      return;
+    }
+    const lev = Number($("lev").value);
+    const riskPct = clamp(Number($("risk").value || 0), 1, 100);
+    const feePct = Math.max(0, Number($("fee").value || 0)) / 100;
+    const tpPct = Math.max(0, Number($("tp").value || 0)) / 100;
+    const slPct = Math.max(0, Number($("sl").value || 0)) / 100;
 
-        function drawNext() {
-            const nextDiv = document.getElementById('next-grid');
-            nextDiv.innerHTML = '';
-            const piece = SHAPES[nextPieceType];
-            drawMiniGrid(nextDiv, piece, nextPieceType);
-        }
+    // margin = balance * riskPct
+    const margin = balance * (riskPct / 100);
+    if(margin < 1000){
+      log("잔고가 너무 적음.");
+      return;
+    }
 
-        function drawHold() {
-            const holdDiv = document.getElementById('hold-grid');
-            holdDiv.innerHTML = '';
-            if (holdPieceType) {
-                const piece = SHAPES[holdPieceType];
-                drawMiniGrid(holdDiv, piece, holdPieceType);
-            }
-        }
+    // qty: we pretend contract value equals price; qty = (margin*lev)/price
+    const notional = margin * lev;
+    const qty = notional / price;
 
-        function drawMiniGrid(element, piece, colorIdx) {
-            let offsetX = 0;
-            let offsetY = 0;
-            if(piece.length === 2) offsetY = 1; // O 블록 중앙 정렬
+    // fee: charge on entry+exit (approx, we pre-charge half now)
+    const feeEntry = notional * feePct * 0.5;
+    if(balance - feeEntry <= 0){
+      log("수수료를 낼 잔고가 부족함.");
+      return;
+    }
+    balance -= feeEntry;
 
-            for (let r = 0; r < piece.length; r++) {
-                for (let c = 0; c < piece[r].length; c++) {
-                    if (piece[r][c] !== 0) {
-                        const block = document.createElement('div');
-                        block.classList.add('block');
-                        block.classList.add(COLORS[colorIdx]);
-                        block.style.gridRowStart = r + 1 + offsetY;
-                        block.style.gridColumnStart = c + 1 + offsetX;
-                        element.appendChild(block);
-                    }
-                }
-            }
-        }
+    const entry = price;
 
-        function handleInput(e) {
-            if (e.key === 'ArrowLeft') {
-                if (!collide(currentX - 1, currentY, currentPiece)) {
-                    currentX--;
-                    draw();
-                }
-            }
-            else if (e.key === 'ArrowRight') {
-                if (!collide(currentX + 1, currentY, currentPiece)) {
-                    currentX++;
-                    draw();
-                }
-            }
-            else if (e.key === 'ArrowDown') {
-                if (!collide(currentX, currentY + 1, currentPiece)) {
-                    currentY++;
-                    draw();
-                }
-            }
-            else if (e.key === 'ArrowUp') {
-                rotate(currentPiece);
-                draw();
-            }
-            else if (e.key === ' ') { // Space Drop
-                while (!collide(currentX, currentY + 1, currentPiece)) {
-                    currentY++;
-                }
-                clearInterval(gameInterval); // Clear interval to prevent immediate next drop
-                gameLoop(); // Force a game loop cycle to merge and spawn next
-                gameInterval = setInterval(gameLoop, speed); // Restart interval
-            }
-            else if (e.key === 'c' || e.key === 'C') {
-                hold();
-                draw();
-            }
-        }
+    // TP/SL prices
+    let tpPx, slPx;
+    if(side === "LONG"){
+      tpPx = entry * (1 + tpPct);
+      slPx = entry * (1 - slPct);
+    }else{
+      tpPx = entry * (1 - tpPct);
+      slPx = entry * (1 + slPct);
+    }
 
-        // 게임 시작
-        init();
+    // liquidation (very simplified): lose 90% of margin => liq
+    // per unit move in price yields pnl = (price-entry)*dir*qty
+    // liq when pnl <= -0.9*margin
+    const dir = side === "LONG" ? 1 : -1;
+    const liqPnl = -0.9 * margin;
+    // liqPrice = entry + (liqPnl / (dir*qty))
+    const liqPx = entry + (liqPnl / (dir * qty));
 
-        startButton.addEventListener('click', init);
+    position = {
+      side, entry, qty, lev,
+      margin,
+      tpPx, slPx, liqPx,
+      feePaid: feeEntry,
+      feePct
+    };
+
+    setStatus(side === "LONG" ? "IN LONG" : "IN SHORT");
+    log(`${side} 진입 · x${lev} · 비중 ${riskPct}% · 진입가 ${fmt(entry,2)} · (진입 수수료 -${fmt(feeEntry,0)} KRW)`);
+    updateKPI();
+    drawChart();
+  }
+
+  function closePosition(reason="수동 종료"){
+    if(!position) { log("포지션이 없음."); return; }
+
+    // realize pnl
+    const upnl = calcUPnL();
+
+    // exit fee half
+    const notional = position.margin * position.lev;
+    const feeExit = notional * position.feePct * 0.5;
+
+    balance += upnl;
+    balance -= feeExit;
+
+    // if liquidation: force to lose remaining margin mostly (already reflected by upnl, but clamp)
+    // safety clamp: balance can't go below 0
+    balance = Math.max(0, balance);
+
+    const side = position.side;
+    const entry = position.entry;
+    const px = price;
+
+    const pnlTxt = upnl >= 0 ? `+${fmt(upnl,0)}` : `${fmt(upnl,0)}`;
+    log(`${reason} · ${side} 종료 · ${fmt(entry,2)} → ${fmt(px,2)} · PnL ${pnlTxt} KRW · (종료 수수료 -${fmt(feeExit,0)} KRW)`);
+
+    position = null;
+    setStatus("READY");
+    updateKPI();
+    renderLB();
+    drawChart();
+  }
+
+  function checkTriggers(){
+    if(!position) return false;
+
+    // liquidation first
+    if(position.side === "LONG" && price <= position.liqPx){
+      closePosition("💥 강제청산");
+      return true;
+    }
+    if(position.side === "SHORT" && price >= position.liqPx){
+      closePosition("💥 강제청산");
+      return true;
+    }
+
+    // TP/SL
+    if(position.side === "LONG"){
+      if(price >= position.tpPx){ closePosition("✅ TP"); return true; }
+      if(price <= position.slPx){ closePosition("🛑 SL"); return true; }
+    }else{
+      if(price <= position.tpPx){ closePosition("✅ TP"); return true; }
+      if(price >= position.slPx){ closePosition("🛑 SL"); return true; }
+    }
+    return false;
+  }
+
+  // ======= ROUND TIMER =======
+  function startRound(){
+    stopRound();
+    roundSecLeft = roundSecTotal;
+    setRoundInfo();
+    renderLB();
+    updateKPI();
+    drawChart();
+
+    timerId = setInterval(()=>{
+      roundSecLeft--;
+      if(roundSecLeft <= 0){
+        // auto close at round end
+        if(position) closePosition("⏱ 라운드 종료 자동청산");
+        round++;
+        roundSecLeft = roundSecTotal;
+        log(`--- Round ${round} 시작 ---`);
+      }
+      setRoundInfo();
+    }, 1000);
+
+    tickId = setInterval(stepPrice, TICK_MS);
+  }
+
+  function stopRound(){
+    if(timerId) clearInterval(timerId);
+    if(tickId) clearInterval(tickId);
+    timerId = null; tickId = null;
+  }
+
+  function newRound(){
+    if(position) closePosition("🔄 새 라운드 강제 종료");
+    // reset price path a bit
+    price = 68000 + (Math.random()-0.5)*800;
+    points = Array.from({length: MAX_POINTS}, () => price);
+    log(`=== 새 라운드(리셋) ===`);
+    startRound();
+  }
+
+  // ======= EVENTS =======
+  $("btnLong").addEventListener("click", () => openPosition("LONG"));
+  $("btnShort").addEventListener("click", () => openPosition("SHORT"));
+  $("btnClose").addEventListener("click", () => closePosition("수동 종료"));
+  $("btnReset").addEventListener("click", () => newRound());
+
+  // ======= INIT =======
+  log("접속 완료. LONG/SHORT 눌러서 시작해봐.");
+  updateKPI();
+  renderLB();
+  startRound();
+})();
