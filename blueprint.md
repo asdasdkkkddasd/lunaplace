@@ -12,6 +12,7 @@ This is a Tetris-like game running in the browser. The user wants to improve the
     -   The game freezes, but remains visible under the overlay.
     -   The "GAME OVER" text positioning was fixed to be centered on the game board.
     -   **Added "RESTART" button:** A button appears on the game over screen, allowing the user to restart the game by clicking it.
+        *   **Refinement:** Modified `main.js` to ensure the restart button's event listener is properly removed and re-attached on game over, preventing multiple listeners from accumulating and improving game restart reliability.
     -   **Displayed Final Score:** The final score is now shown on the game over screen, along with the "GAME OVER" message.
 
 ## New Requirements (Multiplayer Concept)

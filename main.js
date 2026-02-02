@@ -56,6 +56,8 @@
             }
             // Remove keydown listener to prevent duplicates
             document.removeEventListener('keydown', handleInput);
+            // Remove restart button listener to prevent duplicates
+            restartButton.removeEventListener('click', init);
 
             // Reset piece queue and hold
             nextPieceType = Math.floor(Math.random() * 7) + 1;
