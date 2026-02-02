@@ -23,5 +23,8 @@ This is a Tetris-like game running in the browser. The user wants to improve the
 
 ## Current Plan
 
-1.  **Confirm Game Over and Restart Functionality:** The user needs to verify that the game over screen now displays the final score and the "RESTART" button correctly, and that clicking "RESTART" successfully starts a new game.
-2.  **Discuss Multiplayer Feature:** Once the game over and restart functionality is confirmed, we will discuss the approach for the complex multiplayer feature.
+1.  **Debugging Game Over and Restart Functionality:** The user is reporting that the "RESTART" button is not visible or functional. To debug this:
+    *   **CSS changes (temporary):** Added a prominent red background and padding to `.game-over-info` elements in `style.css` to force visibility for debugging.
+    *   **JavaScript changes (temporary):** Re-added `console.log` statements in `init()` and `spawnPiece()` (before attaching restart button listener) in `main.js` to trace execution.
+2.  **User Testing and Report:** The user needs to re-test the game, play until game over, and report the output from the browser's developer console. They also need to confirm if the prominent (red) button is visible.
+3.  **Discuss Multiplayer Feature:** Once the game over and restart functionality is confirmed, we will discuss the approach for the complex multiplayer feature.

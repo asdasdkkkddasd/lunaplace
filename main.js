@@ -67,6 +67,7 @@
         }
 
         function init() {
+            console.log("init() called: Game is starting or restarting.");
             resetGame(); // Reset all game state
 
             // Hide menu, show game
@@ -90,12 +91,14 @@
             
             // 패배 조건 확인
             if (collide(currentX, currentY, currentPiece)) {
+                console.log("Game Over condition met in spawnPiece().");
                 clearInterval(gameInterval); // Stop game loop
                 gameContainer.classList.add('game-over'); // Apply overlay and effects
                 document.removeEventListener('keydown', handleInput); // Disable controls
                 
                 // Display final score and restart button
                 finalScoreDisplay.innerText = `Final Score: ${score}`;
+                console.log("Attaching restart button listener.");
                 restartButton.addEventListener('click', init);
                 
                 return;
