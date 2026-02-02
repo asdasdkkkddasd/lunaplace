@@ -33,8 +33,8 @@
         const menu = document.querySelector('.menu');
         const gameContainer = document.querySelector('.game-container');
         const finalScoreDisplay = document.getElementById('final-score');
-        const restartButton = document.getElementById('restart-button');
-
+        const gameOverRestartButton = document.getElementById('game-over-restart-button'); // Renamed
+        const restartGameplayButton = document.getElementById('restart-gameplay-button'); // New button
 
         // --- 2. 게임 로직 ---
         function resetGame() {
@@ -56,8 +56,10 @@
             }
             // Remove keydown listener to prevent duplicates
             document.removeEventListener('keydown', handleInput);
-            // Remove restart button listener to prevent duplicates
-            restartButton.removeEventListener('click', init);
+            // Remove game over restart button listener to prevent duplicates
+            gameOverRestartButton.removeEventListener('click', init);
+            // Hide the gameplay restart button when resetting (e.g., to show menu or game over)
+            restartGameplayButton.style.display = 'none';
 
             // Reset piece queue and hold
             nextPieceType = Math.floor(Math.random() * 7) + 1;
@@ -76,6 +78,7 @@
             menu.style.display = 'none';
             gameContainer.style.display = 'flex';
             gameContainer.classList.remove('game-over'); // Remove grayscale filter
+            restartGameplayButton.style.display = 'block'; // Show the gameplay restart button
 
             spawnPiece();
             draw();
@@ -100,8 +103,9 @@
                 
                 // Display final score and restart button
                 finalScoreDisplay.innerText = `Final Score: ${score}`;
-                console.log("Attaching restart button listener.");
-                restartButton.addEventListener('click', init);
+                console.log("Attaching game over restart button listener.");
+                gameOverRestartButton.addEventListener('click', init); // Attach listener to the game over button
+                restartGameplayButton.style.display = 'none'; // Hide the gameplay restart button
                 
                 return;
             }
@@ -360,5 +364,6 @@
         }
 
         startButton.addEventListener('click', init);
+        restartGameplayButton.addEventListener('click', init);
         
         

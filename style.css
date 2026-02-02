@@ -181,7 +181,7 @@
             font-size: 1.5em;
         }
 
-        #restart-button {
+        #game-over-restart-button {
             top: 70%; /* Position below final score */
             padding: 12px 25px;
             font-size: 1.3em;
@@ -197,13 +197,48 @@
             letter-spacing: 1px;
         }
 
-        #restart-button:hover {
+        #game-over-restart-button:hover {
             background-color: #0056b3;
             transform: scale(1.05);
         }
 
-        #restart-button:active {
+        #game-over-restart-button:active {
             transform: scale(0.98);
+        }
+
+        /* New gameplay restart button */
+        #restart-gameplay-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+            background-color: rgba(0, 123, 255, 0.8); /* Slightly transparent blue */
+            border: 2px solid #0056b3;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 10; /* Ensure it's above blocks but below game over overlay */
+        }
+
+        #restart-gameplay-button:hover {
+            background-color: #0056b3;
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        #restart-gameplay-button:active {
+            transform: translate(-50%, -50%) scale(0.98);
+        }
+
+        /* Hide gameplay restart button when game is over */
+        .game-container.game-over #restart-gameplay-button {
+            display: none;
         }
 
         /* Show game-over-info elements when game is over */
