@@ -13,10 +13,12 @@ This is a Tetris-like game running in the browser. The user wants to improve the
     -   The "GAME OVER" text positioning was fixed to be centered on the game board.
     -   **Added "RESTART" button (Game Over):** A button appears on the game over screen, allowing the user to restart the game by clicking it.
         *   **Refinement:** Modified `main.js` to ensure the game over restart button's event listener is properly removed and re-attached on game over, preventing multiple listeners from accumulating and improving game restart reliability.
+        *   **Visibility Fix (Robustness):** Explicitly set `gameOverRestartButton.style.display = 'block'` on game over and `gameOverRestartButton.style.display = 'none'` on game reset in `main.js` to ensure reliable visibility, overriding potential CSS conflicts. Added console logs for debugging these display changes.
     -   **Displayed Final Score:** The final score is now shown on the game over screen, along with the "GAME OVER" message.
 2.  **Added In-Game "RESTART" Button:** A new "RESTART" button is now visible in the middle of the game screen during active gameplay.
     *   Clicking this button immediately restarts the game.
     *   This button is hidden when the game is over.
+    *   **Visibility Fix (Robustness):** Explicitly set `restartGameplayButton.style.display = 'block'` on game start and `restartGameplayButton.style.display = 'none'` on game over/reset in `main.js` to ensure reliable visibility. Added console logs for debugging these display changes.
 
 ## New Requirements (Multiplayer Concept)
 

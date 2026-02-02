@@ -58,6 +58,8 @@
             document.removeEventListener('keydown', handleInput);
             // Remove game over restart button listener to prevent duplicates
             gameOverRestartButton.removeEventListener('click', init);
+            console.log("Hiding game over restart button.");
+            gameOverRestartButton.style.display = 'none'; // Explicitly hide the game over restart button
             // Hide the gameplay restart button when resetting (e.g., to show menu or game over)
             restartGameplayButton.style.display = 'none';
 
@@ -105,6 +107,8 @@
                 finalScoreDisplay.innerText = `Final Score: ${score}`;
                 console.log("Attaching game over restart button listener.");
                 gameOverRestartButton.addEventListener('click', init); // Attach listener to the game over button
+                console.log("Showing game over restart button.");
+                gameOverRestartButton.style.display = 'block'; // Explicitly show the game over restart button
                 restartGameplayButton.style.display = 'none'; // Hide the gameplay restart button
                 
                 return;
