@@ -1,304 +1,344 @@
-const canvas = document.getElementById('tetris');
-const context = canvas.getContext('2d');
-const next1Canvas = document.getElementById('next-1');
-const next1Context = next1Canvas.getContext('2d');
-const next2Canvas = document.getElementById('next-2');
-const next2Context = next2Canvas.getContext('2d');
-const startButton = document.getElementById('start-button');
-const menu = document.querySelector('.menu');
-const container = document.querySelector('.container');
+        // --- 1. 기본 설정 및 데이터 ---
+        const COLS = 10;
+        const ROWS = 20;
+        const board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        
+        const SHAPES = [
+            [], // 0: empty
+            [[1, 1, 1, 1]], // I (Cyan)
+            [[2, 0, 0], [2, 2, 2]], // J (Blue)
+            [[0, 0, 3], [3, 3, 3]], // L (Orange)
+            [[4, 4], [4, 4]], // O (Yellow)
+            [[0, 5, 5], [5, 5, 0]], // S (Green)
+            [[0, 6, 0], [6, 6, 6]], // T (Purple)
+            [[7, 7, 0], [0, 7, 7]]  // Z (Red)
+        ];
+        
+        const COLORS = ['transparent', 'cyan', 'blue', 'orange', 'yellow', 'green', 'purple', 'red'];
 
-context.scale(20, 20);
-next1Context.scale(20, 20);
-next2Context.scale(20, 20);
+        let currentPiece = null;
+        let currentX = 0;
+        let currentY = 0;
+        let nextPieceType = null;
+        let holdPieceType = null;
+        let canHold = true;
+        let score = 0;
+        let lines = 0;
+        let level = 1;
+        let gameInterval;
+        let speed = 1000;
 
-let pieceQueue = [];
+        // DOM elements
+        const startButton = document.getElementById('start-button');
+        const menu = document.querySelector('.menu');
+        const gameContainer = document.querySelector('.game-container');
 
-function arenaSweep() {
-    let rowCount = 1;
-    outer: for (let y = arena.length - 1; y > 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) {
-                continue outer;
+
+        // --- 2. 게임 로직 ---
+
+        function init() {
+            // Hide menu, show game
+            menu.style.display = 'none';
+            gameContainer.style.display = 'flex';
+
+            // Reset game state
+            for(let r = 0; r < ROWS; r++) {
+                for(let c = 0; c < COLS; c++) {
+                    board[r][c] = 0;
+                }
+            }
+            score = 0;
+            lines = 0;
+            level = 1;
+            speed = 1000;
+            document.getElementById('score').innerText = score;
+            document.getElementById('lines').innerText = lines;
+            document.getElementById('level').innerText = level;
+
+
+            nextPieceType = Math.floor(Math.random() * 7) + 1;
+            spawnPiece();
+            draw();
+            gameInterval = setInterval(gameLoop, speed);
+            document.addEventListener('keydown', handleInput);
+        }
+
+        function spawnPiece() {
+            const type = nextPieceType;
+            nextPieceType = Math.floor(Math.random() * 7) + 1;
+            
+            currentPiece = SHAPES[type];
+            currentX = Math.floor((COLS - currentPiece[0].length) / 2);
+            currentY = 0;
+            
+            // 패배 조건 확인
+            if (collide(currentX, currentY, currentPiece)) {
+                alert("Game Over! Score: " + score);
+                clearInterval(gameInterval);
+                // Show menu again
+                menu.style.display = 'flex';
+                gameContainer.style.display = 'none';
+                return; // Stop game loop implicitly
+            }
+            
+            canHold = true;
+            drawNext();
+        }
+
+        function collide(x, y, piece) {
+            for (let r = 0; r < piece.length; r++) {
+                for (let c = 0; c < piece[r].length; c++) {
+                    if (piece[r][c] !== 0) {
+                        let newX = x + c;
+                        let newY = y + r;
+                        if (newX < 0 || newX >= COLS || newY >= ROWS || (newY >= 0 && board[newY][newX] !== 0)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function merge() {
+            let colorIndex = 0;
+            for(let r=0; r<currentPiece.length; r++) {
+                for(let c=0; c<currentPiece[r].length; c++){
+                    if(currentPiece[r][c] !== 0) {
+                        colorIndex = currentPiece[r][c];
+                        break;
+                    }
+                }
+                if(colorIndex !== 0) break;
+            }
+
+            for (let r = 0; r < currentPiece.length; r++) {
+                for (let c = 0; c < currentPiece[r].length; c++) {
+                    if (currentPiece[r][c] !== 0) {
+                        board[currentY + r][currentX + c] = colorIndex;
+                    }
+                }
             }
         }
 
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
-
-        player.score += rowCount * 10;
-        rowCount *= 2;
-    }
-}
-
-function collide(arena, player) {
-    const [m, o] = [player.matrix, player.pos];
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 &&
-               (arena[y + o.y] &&
-                arena[y + o.y][x + o.x]) !== 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-function createMatrix(w, h) {
-    const matrix = [];
-    while (h--) {
-        matrix.push(new Array(w).fill(0));
-    }
-    return matrix;
-}
-
-function createPiece(type) {
-    if (type === 'T') {
-        return [
-            [0, 0, 0],
-            [1, 1, 1],
-            [0, 1, 0],
-        ];
-    } else if (type === 'O') {
-        return [
-            [2, 2],
-            [2, 2],
-        ];
-    } else if (type === 'L') {
-        return [
-            [0, 3, 0],
-            [0, 3, 0],
-            [0, 3, 3],
-        ];
-    } else if (type === 'J') {
-        return [
-            [0, 4, 0],
-            [0, 4, 0],
-            [4, 4, 0],
-        ];
-    } else if (type === 'I') {
-        return [
-            [0, 5, 0, 0],
-            [0, 5, 0, 0],
-            [0, 5, 0, 0],
-            [0, 5, 0, 0],
-        ];
-    } else if (type === 'S') {
-        return [
-            [0, 6, 6],
-            [6, 6, 0],
-            [0, 0, 0],
-        ];
-    } else if (type === 'Z') {
-        return [
-            [7, 7, 0],
-            [0, 7, 7],
-            [0, 0, 0],
-        ];
-    }
-}
-
-function draw() {
-    drawCheckerboard();
-    drawMatrix(context, arena, {x: 0, y: 0});
-    drawMatrix(context, player.matrix, player.pos);
-}
-
-function drawCheckerboard() {
-    for (let y = 0; y < 20; y++) {
-        for (let x = 0; x < 12; x++) {
-            if ((x + y) % 2 === 0) {
-                context.fillStyle = '#111';
+        function rotate(piece) {
+            const newPiece = piece[0].map((_, i) => piece.map(row => row[i]).reverse());
+            if (!collide(currentX, currentY, newPiece)) {
+                currentPiece = newPiece;
             } else {
-                context.fillStyle = '#222';
+                // Wall kick (간단 버전: 좌우로 살짝 밀어보기)
+                if (!collide(currentX - 1, currentY, newPiece)) {
+                    currentX -= 1;
+                    currentPiece = newPiece;
+                } else if (!collide(currentX + 1, currentY, newPiece)) {
+                    currentX += 1;
+                    currentPiece = newPiece;
+                }
             }
-            context.fillRect(x, y, 1, 1);
         }
-    }
-}
 
-function drawMatrix(ctx, matrix, offset) {
-    matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                ctx.fillStyle = colors[value];
-                ctx.fillRect(x + offset.x,
-                                 y + offset.y,
-                                 1, 1);
+        function clearLines() {
+            let linesCleared = 0;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (board[r].every(cell => cell !== 0)) {
+                    board.splice(r, 1);
+                    board.unshift(Array(COLS).fill(0));
+                    linesCleared++;
+                    r++; 
+                }
             }
-        });
-    });
-}
-
-function drawNextPieces() {
-    next1Context.fillStyle = '#000';
-    next1Context.fillRect(0, 0, next1Canvas.width, next1Canvas.height);
-    drawMatrix(next1Context, createPiece(pieceQueue[0]), {x: 1, y: 1});
-
-    next2Context.fillStyle = '#000';
-    next2Context.fillRect(0, 0, next2Canvas.width, next2Canvas.height);
-    drawMatrix(next2Context, createPiece(pieceQueue[1]), {x: 1, y: 1});
-}
-
-function merge(arena, player) {
-    player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                arena[y + player.pos.y][x + player.pos.x] = value;
+            if (linesCleared > 0) {
+                lines += linesCleared;
+                score += linesCleared * 100 * linesCleared;
+                level = Math.floor(lines / 10) + 1;
+                speed = Math.max(100, 1000 - (level - 1) * 100);
+                clearInterval(gameInterval);
+                gameInterval = setInterval(gameLoop, speed);
+                
+                document.getElementById('score').innerText = score;
+                document.getElementById('lines').innerText = lines;
+                document.getElementById('level').innerText = level;
             }
-        });
-    });
-}
-
-function playerDrop() {
-    player.pos.y++;
-    if (collide(arena, player)) {
-        player.pos.y--;
-        merge(arena, player);
-        playerReset();
-        arenaSweep();
-        updateScore();
-    }
-    dropCounter = 0;
-}
-
-function playerHardDrop() {
-    while (!collide(arena, player)) {
-        player.pos.y++;
-    }
-    player.pos.y--;
-    merge(arena, player);
-    playerReset();
-    arenaSweep();
-    updateScore();
-    dropCounter = 0;
-}
-
-function playerMove(dir) {
-    player.pos.x += dir;
-    if (collide(arena, player)) {
-        player.pos.x -= dir;
-    }
-}
-
-function playerReset() {
-    const pieces = 'ILJOTSZ';
-    if (pieceQueue.length === 0) {
-        pieceQueue = pieces.split('').sort(() => Math.random() - 0.5);
-    }
-    player.matrix = createPiece(pieceQueue.shift());
-    if (pieceQueue.length <= 2) {
-        pieceQueue.push(...pieces.split('').sort(() => Math.random() - 0.5));
-    }
-
-    player.pos.y = 0;
-    player.pos.x = (arena[0].length / 2 | 0) -
-                   (player.matrix[0].length / 2 | 0);
-    if (collide(arena, player)) {
-        arena.forEach(row => row.fill(0));
-        player.score = 0;
-        updateScore();
-    }
-    drawNextPieces();
-}
-
-function playerRotate(dir) {
-    const pos = player.pos.x;
-    let offset = 1;
-    rotate(player.matrix, dir);
-    while (collide(arena, player)) {
-        player.pos.x += offset;
-        offset = -(offset + (offset > 0 ? 1 : -1));
-        if (offset > player.matrix[0].length) {
-            rotate(player.matrix, -dir);
-            player.pos.x = pos;
-            return;
         }
-    }
-}
 
-function rotate(matrix, dir) {
-    for (let y = 0; y < matrix.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-            [
-                matrix[x][y],
-                matrix[y][x],
-            ] = [
-                matrix[y][x],
-                matrix[x][y],
-            ];
+        function gameLoop() {
+            if (!collide(currentX, currentY + 1, currentPiece)) {
+                currentY++;
+            } else {
+                merge();
+                clearLines();
+                spawnPiece();
+            }
+            draw();
         }
-    }
 
-    if (dir > 0) {
-        matrix.forEach(row => row.reverse());
-    } else {
-        matrix.reverse();
-    }
-}
+        // 고스트 블록 위치 계산
+        function getGhostY() {
+            let ghostY = currentY;
+            while (!collide(currentX, ghostY + 1, currentPiece)) {
+                ghostY++;
+            }
+            return ghostY;
+        }
 
-let dropCounter = 0;
-let dropInterval = 1000;
+        function hold() {
+            if (!canHold) return;
+            
+            // 현재 블록의 색상 인덱스 찾기
+            let currentColorIdx = 0;
+             for(let r=0; r<currentPiece.length; r++) {
+                if(currentPiece[r].some(v=>v!==0)) {
+                    currentColorIdx = currentPiece[r].find(v=>v!==0);
+                    break;
+                }
+            }
 
-let lastTime = 0;
-function update(time = 0) {
-    const deltaTime = time - lastTime;
-    lastTime = time;
+            if (holdPieceType === null) {
+                holdPieceType = currentColorIdx; // 현재 조각 타입 저장
+                spawnPiece(); // 새 조각
+            } else {
+                let temp = holdPieceType;
+                holdPieceType = currentColorIdx;
+                currentPiece = SHAPES[temp]; // 저장된 조각 불러오기
+                currentX = Math.floor((COLS - currentPiece[0].length) / 2);
+                currentY = 0;
+            }
+            canHold = false;
+            drawHold();
+        }
 
-    dropCounter += deltaTime;
-    if (dropCounter > dropInterval) {
-        playerDrop();
-    }
 
-    draw();
-    requestAnimationFrame(update);
-}
+        // --- 3. 렌더링 (그리기) ---
 
-function updateScore() {
-    document.getElementById('score').innerText = 'Score: ' + player.score;
-}
+        function draw() {
+            const boardDiv = document.getElementById('game-board');
+            boardDiv.innerHTML = ''; // 초기화
 
-const colors = [
-    null,
-    '#FF0D72',
-    '#0DC2FF',
-    '#0DFF72',
-    '#F538FF',
-    '#FF8E0D',
-    '#FFE138',
-    '#3877FF',
-];
+            // 1. 이미 고정된 블록 그리기
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] !== 0) {
+                        const block = document.createElement('div');
+                        block.classList.add('block');
+                        block.classList.add(COLORS[board[r][c]]);
+                        block.style.gridRowStart = r + 1;
+                        block.style.gridColumnStart = c + 1;
+                        boardDiv.appendChild(block);
+                    }
+                }
+            }
 
-const arena = createMatrix(12, 20);
+            // 2. 고스트 블록 그리기 (그림자)
+            const ghostY = getGhostY();
+            for (let r = 0; r < currentPiece.length; r++) {
+                for (let c = 0; c < currentPiece[r].length; c++) {
+                    if (currentPiece[r][c] !== 0) {
+                        const block = document.createElement('div');
+                        block.classList.add('block', 'ghost');
+                        // 색상은 현재 블록 색을 따라가되 투명하게 할 수도 있지만, 여기선 흰 테두리로 통일
+                        block.style.gridRowStart = ghostY + r + 1;
+                        block.style.gridColumnStart = currentX + c + 1;
+                        boardDiv.appendChild(block);
+                    }
+                }
+            }
 
-const player = {
-    pos: {x: 0, y: 0},
-    matrix: null,
-    score: 0,
-};
+            // 3. 현재 떨어지는 블록 그리기
+            let colorIndex = 0;
+             for(let r=0; r<currentPiece.length; r++) {
+                if(currentPiece[r].some(v=>v!==0)) {
+                    colorIndex = currentPiece[r].find(v=>v!==0);
+                    break;
+                }
+            }
 
-document.addEventListener('keydown', event => {
-    if (event.keyCode === 37) {
-        playerMove(-1);
-    } else if (event.keyCode === 39) {
-        playerMove(1);
-    } else if (event.keyCode === 40) {
-        playerDrop();
-    } else if (event.keyCode === 38) {
-        playerRotate(1);
-    } else if (event.keyCode === 32) {
-        playerHardDrop();
-    }
-});
+            for (let r = 0; r < currentPiece.length; r++) {
+                for (let c = 0; c < currentPiece[r].length; c++) {
+                    if (currentPiece[r][c] !== 0) {
+                        const block = document.createElement('div');
+                        block.classList.add('block');
+                        block.classList.add(COLORS[colorIndex]);
+                        block.style.gridRowStart = currentY + r + 1;
+                        block.style.gridColumnStart = currentX + c + 1;
+                        boardDiv.appendChild(block);
+                    }
+                }
+            }
+        }
 
-function startGame() {
-    menu.style.display = 'none';
-    container.style.display = 'flex';
-    playerReset();
-    updateScore();
-    update();
-}
+        function drawNext() {
+            const nextDiv = document.getElementById('next-grid');
+            nextDiv.innerHTML = '';
+            const piece = SHAPES[nextPieceType];
+            drawMiniGrid(nextDiv, piece, nextPieceType);
+        }
 
-startButton.addEventListener('click', startGame);
+        function drawHold() {
+            const holdDiv = document.getElementById('hold-grid');
+            holdDiv.innerHTML = '';
+            if (holdPieceType) {
+                const piece = SHAPES[holdPieceType];
+                drawMiniGrid(holdDiv, piece, holdPieceType);
+            }
+        }
+
+        function drawMiniGrid(element, piece, colorIdx) {
+            let offsetX = 0;
+            let offsetY = 0;
+            if(piece.length === 2) offsetY = 1; // O 블록 중앙 정렬
+
+            for (let r = 0; r < piece.length; r++) {
+                for (let c = 0; c < piece[r].length; c++) {
+                    if (piece[r][c] !== 0) {
+                        const block = document.createElement('div');
+                        block.classList.add('block');
+                        block.classList.add(COLORS[colorIdx]);
+                        block.style.gridRowStart = r + 1 + offsetY;
+                        block.style.gridColumnStart = c + 1 + offsetX;
+                        element.appendChild(block);
+                    }
+                }
+            }
+        }
+
+        function handleInput(e) {
+            if (e.key === 'ArrowLeft') {
+                if (!collide(currentX - 1, currentY, currentPiece)) {
+                    currentX--;
+                    draw();
+                }
+            }
+            else if (e.key === 'ArrowRight') {
+                if (!collide(currentX + 1, currentY, currentPiece)) {
+                    currentX++;
+                    draw();
+                }
+            }
+            else if (e.key === 'ArrowDown') {
+                if (!collide(currentX, currentY + 1, currentPiece)) {
+                    currentY++;
+                    draw();
+                }
+            }
+            else if (e.key === 'ArrowUp') {
+                rotate(currentPiece);
+                draw();
+            }
+            else if (e.key === ' ') { // Space Drop
+                while (!collide(currentX, currentY + 1, currentPiece)) {
+                    currentY++;
+                }
+                clearInterval(gameInterval); // Clear interval to prevent immediate next drop
+                gameLoop(); // Force a game loop cycle to merge and spawn next
+                gameInterval = setInterval(gameLoop, speed); // Restart interval
+            }
+            else if (e.key === 'c' || e.key === 'C') {
+                hold();
+                draw();
+            }
+        }
+
+        // 게임 시작
+        init();
+
+        startButton.addEventListener('click', init);

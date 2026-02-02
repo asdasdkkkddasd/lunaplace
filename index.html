@@ -1,24 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tetris</title>
+    <title>Glossy Tetris</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Tetris</h1>
     <div class="menu">
         <button id="start-button">Start Game</button>
     </div>
-    <div class="container">
-        <canvas id="tetris" width="240" height="400"></canvas>
-        <div class="sidebar">
-            <div id="score">Score: 0</div>
-            <canvas id="next-1" width="80" height="80"></canvas>
-            <canvas id="next-2" width="80" height="80"></canvas>
+
+    <div class="game-container">
+        <div class="column">
+            <div class="panel side-panel">
+                <h3>HOLD</h3>
+                <div id="hold-grid" class="mini-grid"></div>
+            </div>
+            <div class="panel side-panel score-box">
+                <div class="label">SCORE</div>
+                <div id="score" class="score-text">0</div>
+                <div class="label">LEVEL</div>
+                <div id="level" class="score-text">1</div>
+                <div class="label">LINES</div>
+                <div id="lines" class="score-text">0</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div id="game-board" class="board-wrapper"></div>
+        </div>
+
+        <div class="column">
+            <div class="panel side-panel" style="height: 150px;">
+                <h3>NEXT</h3>
+                <div id="next-grid" class="mini-grid"></div>
+            </div>
+            <div style="margin-top: 150px; text-align: center; color:#555;">
+                <p>← ↓ → : 이동</p>
+                <p>↑ : 회전</p>
+                <p>Space : 드롭</p>
+                <p>C : 홀드</p>
+            </div>
         </div>
     </div>
+
     <script src="main.js"></script>
 </body>
 </html>
