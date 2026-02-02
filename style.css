@@ -243,5 +243,5 @@
 
         /* Show game-over-info elements when game is over */
         .game-container.game-over .game-over-info {
-            display: block;
+            display: block !important;
         }

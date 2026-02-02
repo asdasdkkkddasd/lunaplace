@@ -14,6 +14,7 @@ This is a Tetris-like game running in the browser. The user wants to improve the
     -   **Added "RESTART" button (Game Over):** A button appears on the game over screen, allowing the user to restart the game by clicking it.
         *   **Refinement:** Modified `main.js` to ensure the game over restart button's event listener is properly removed and re-attached on game over, preventing multiple listeners from accumulating and improving game restart reliability.
         *   **Visibility Fix (Robustness):** Explicitly set `gameOverRestartButton.style.display = 'block'` on game over and `gameOverRestartButton.style.display = 'none'` on game reset in `main.js` to ensure reliable visibility, overriding potential CSS conflicts. Added verbose console logs for debugging these display changes, including checks for DOM element existence.
+        *   **Forced Visibility (CSS `!important`):** Added `!important` to the `display: block` rule for the game-over restart button within `style.css`. This is a last-resort measure to aggressively force its visibility, overriding any potential conflicting CSS rules with higher specificity.
     -   **Displayed Final Score:** The final score is now shown on the game over screen, along with the "GAME OVER" message.
 2.  **Added In-Game "RESTART" Button:** A new "RESTART" button is now visible in the middle of the game screen during active gameplay.
     *   Clicking this button immediately restarts the game.
