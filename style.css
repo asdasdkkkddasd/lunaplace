@@ -161,3 +161,50 @@
             filter: grayscale(80%);
             pointer-events: none; /* Stop all interactions */
         }
+
+        /* Styles for Game Over info elements (Score, Restart Button) */
+        .game-over-info {
+            display: none; /* Hidden by default */
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 101; /* Ensure it's above the overlay and text */
+        }
+
+        #final-score {
+            top: 60%; /* Position below "GAME OVER" text */
+            font-size: 1.5em;
+        }
+
+        #restart-button {
+            top: 70%; /* Position below final score */
+            padding: 12px 25px;
+            font-size: 1.3em;
+            cursor: pointer;
+            background-color: #007bff; /* A nice blue */
+            border: 2px solid #0056b3;
+            border-radius: 8px;
+            color: white;
+            text-align: center;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #restart-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        #restart-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Show game-over-info elements when game is over */
+        .game-container.game-over .game-over-info {
+            display: block;
+        }
